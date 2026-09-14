@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IUO Interview WhatsApp Dispatcher</title>
+    <title>AutoInterview - WhatsApp Dispatcher</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         :root {
             --primary: #1b5e20;
             --primary-light: #2e7d32;
+            --primary-gradient: linear-gradient(135deg, #1b5e20 0%, #0d3813 100%);
             --wa-green: #25d366;
             --wa-dark: #128c7e;
             --bg: #f4f6f8;
@@ -23,9 +24,11 @@
             background: var(--bg);
             color: var(--text-dark);
             padding: 24px;
+            max-width: 1300px;
+            margin: 0 auto;
         }
         .header-card {
-            background: linear-gradient(135deg, #1b5e20 0%, #0d3813 100%);
+            background: var(--primary-gradient);
             color: white;
             padding: 24px 32px;
             border-radius: 12px;
@@ -45,11 +48,12 @@
         }
         .stat-badge {
             background: rgba(255,255,255,0.18);
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 8px;
             text-align: center;
+            min-width: 90px;
         }
-        .stat-badge .num { font-size: 20px; font-weight: 700; display: block; }
+        .stat-badge .num { font-size: 22px; font-weight: 700; display: block; }
         .stat-badge .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }
         
         .controls-card {
@@ -67,7 +71,7 @@
         .search-box {
             position: relative;
             flex: 1;
-            max-width: 400px;
+            max-width: 420px;
         }
         .search-box input {
             width: 100%;
@@ -88,7 +92,9 @@
         }
         .quick-links {
             display: flex;
+            align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
         .btn-link {
             padding: 8px 14px;
@@ -101,6 +107,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s;
         }
         .btn-link:hover { background: #e2e8f0; }
 
@@ -135,14 +144,14 @@
         tr:hover td { background: #f8fafc; }
         tr.sent td {
             background: #f0fdf4 !important;
-            opacity: 0.8;
+            opacity: 0.85;
         }
         tr.sent .name-cell strong {
             text-decoration: line-through;
             color: var(--text-muted);
         }
 
-        .check-col { width: 40px; text-align: center; }
+        .check-col { width: 44px; text-align: center; }
         .status-check {
             width: 18px;
             height: 18px;
@@ -175,6 +184,7 @@
             gap: 6px;
             cursor: pointer;
             transition: all 0.2s;
+            border: none;
         }
         .btn-wa {
             background: var(--wa-green);
@@ -187,6 +197,55 @@
             color: #b91c1c;
         }
         .btn-pdf:hover { background: #fecaca; }
+        
+        /* Empty State */
+        .empty-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 56px 32px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            max-width: 640px;
+            margin: 40px auto;
+        }
+        .empty-icon {
+            font-size: 54px;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+        .empty-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        .empty-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .empty-guide {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px 24px;
+            text-align: left;
+            margin-top: 16px;
+        }
+        .empty-guide h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 10px;
+        }
+        .empty-guide ol {
+            padding-left: 20px;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.8;
+        }
+
         .footer-note {
             text-align: center;
             margin-top: 24px;
@@ -194,17 +253,19 @@
             color: var(--text-muted);
         }
     </style>
+    <!-- Load dynamically generated candidates data from Output/ -->
+    <script src="Output/candidates.js"></script>
 </head>
 <body>
 
     <div class="header-card">
         <div>
-            <h1>Igbinedion University, Okada - Interview Dispatcher</h1>
-            <p>Direct WhatsApp dispatching & PDF access for shortlisted applicants</p>
+            <h1 id="header-title">Interview WhatsApp Dispatcher</h1>
+            <p id="header-subtitle">Direct WhatsApp dispatching & PDF access for shortlisted applicants</p>
         </div>
         <div class="stats-bar">
             <div class="stat-badge">
-                <span class="num">5</span>
+                <span class="num" id="total-count">0</span>
                 <span class="lbl">Total Candidates</span>
             </div>
             <div class="stat-badge">
@@ -214,166 +275,160 @@
         </div>
     </div>
 
-    <div class="controls-card">
-        <div class="search-box">
-            <i class="fa fa-search"></i>
-            <input type="text" id="search-input" placeholder="Search applicant name or phone number..." onkeyup="filterTable()">
+    <!-- Active Batch Container -->
+    <div id="active-batch-container" style="display: none;">
+        <div class="controls-card">
+            <div class="search-box">
+                <i class="fa fa-search"></i>
+                <input type="text" id="search-input" placeholder="Search applicant name, phone, or address..." onkeyup="filterTable()">
+            </div>
+            <div class="quick-links">
+                <a href="Output/All_Interview_Invitations.docx" class="btn-link" target="_blank">
+                    <i class="fa fa-file-word-o"></i> Master Word Doc
+                </a>
+                <a href="Output/PDFs/" class="btn-link" target="_blank">
+                    <i class="fa fa-folder-open-o"></i> PDFs Folder
+                </a>
+                <button class="btn-link" onclick="resetAllSentProgress()" title="Clear all checkmarks">
+                    <i class="fa fa-refresh"></i> Reset Sent Status
+                </button>
+            </div>
         </div>
-        <div class="quick-links">
-            <a href="Output/All_Interview_Invitations.docx" class="btn-link" target="_blank">
-                <i class="fa fa-file-word-o"></i> Open Master Word Doc
-            </a>
-            <a href="Output/PDFs/" class="btn-link" target="_blank">
-                <i class="fa fa-folder-open-o"></i> Open PDFs Folder
-            </a>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="check-col" title="Mark as sent">Sent</th>
+                        <th>Candidate Name & Address</th>
+                        <th>Phone / WhatsApp</th>
+                        <th>Interview Schedule</th>
+                        <th>Individual Letter</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="candidates-body">
+                    <!-- Populated dynamically by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer-note">
+            Tip: Check the box next to any candidate to mark their invitation as sent. Your progress is automatically remembered in this browser.
         </div>
     </div>
 
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th class="check-col" title="Mark as sent">Sent</th>
-                    <th>Candidate Name & Address</th>
-                    <th>Phone / WhatsApp</th>
-                    <th>Interview Schedule</th>
-                    <th>Individual Letter</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="candidates-body">
-                
-        <tr data-name="edeoghon irekpono" data-phone="08031234567">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, 'Edeoghon Irekpono')" id="check-Edeoghon Irekpono">
-            </td>
-            <td class="name-cell">
-                <strong>Edeoghon Irekpono</strong>
-                <div class="addr-preview">Warri, Nigeria.</div>
-            </td>
-            <td><span class="badge badge-phone">08031234567</span></td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> Tuesday, 4th August, 2026</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> 10:00 AM</div>
-            </td>
-            <td>
-                <a href="Output/PDFs/Edeoghon%20Irekpono%20-%2008031234567.pdf" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                <a href="https://wa.me/2348031234567?text=Dear%20Edeoghon%20Irekpono%2C%0A%0AFollowing%20your%20application%20for%20employment%20at%20Igbinedion%20University%2C%20Okada%20%28IUO%29%2C%20I%20am%20pleased%20to%20inform%20you%20that%20you%20have%20been%20shortlisted%20for%20an%20interview.%0A%0ADate%3A%20Tuesday%2C%204th%20August%2C%202026%0ATime%3A%2010%3A00%20AM%0AVenue%3A%20Senate%20Chamber%2C%20Paul%20Dike%20Central%20Administration%20Building%2C%20IUO%20Main%20Campus%2C%20Okada.%0A%0APlease%20find%20attached%20your%20official%20invitation%20letter%20%28PDF%29.%0A%0ABest%20regards%2C%0ACouncil%2C%20Personnel%20%26%20General%20Administration%0AIgbinedion%20University%2C%20Okada" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>
-            </td>
-        </tr>
-        
-        <tr data-name="adesuwa osakue" data-phone="08029876543">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, 'Adesuwa Osakue')" id="check-Adesuwa Osakue">
-            </td>
-            <td class="name-cell">
-                <strong>Adesuwa Osakue</strong>
-                <div class="addr-preview">12 Boundary Road, GRA</div>
-            </td>
-            <td><span class="badge badge-phone">08029876543</span></td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> Tuesday, 4th August, 2026</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> 10:30 AM</div>
-            </td>
-            <td>
-                <a href="Output/PDFs/Adesuwa%20Osakue%20-%2008029876543.pdf" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                <a href="https://wa.me/2348029876543?text=Dear%20Adesuwa%20Osakue%2C%0A%0AFollowing%20your%20application%20for%20employment%20at%20Igbinedion%20University%2C%20Okada%20%28IUO%29%2C%20I%20am%20pleased%20to%20inform%20you%20that%20you%20have%20been%20shortlisted%20for%20an%20interview.%0A%0ADate%3A%20Tuesday%2C%204th%20August%2C%202026%0ATime%3A%2010%3A30%20AM%0AVenue%3A%20Senate%20Chamber%2C%20Paul%20Dike%20Central%20Administration%20Building%2C%20IUO%20Main%20Campus%2C%20Okada.%0A%0APlease%20find%20attached%20your%20official%20invitation%20letter%20%28PDF%29.%0A%0ABest%20regards%2C%0ACouncil%2C%20Personnel%20%26%20General%20Administration%0AIgbinedion%20University%2C%20Okada" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>
-            </td>
-        </tr>
-        
-        <tr data-name="chinedu emmanuel okafor" data-phone="08145551234">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, 'Chinedu Emmanuel Okafor')" id="check-Chinedu Emmanuel Okafor">
-            </td>
-            <td class="name-cell">
-                <strong>Chinedu Emmanuel Okafor</strong>
-                <div class="addr-preview">Flat 4, Palm View Estate</div>
-            </td>
-            <td><span class="badge badge-phone">08145551234</span></td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> Tuesday, 4th August, 2026</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> 11:00 AM</div>
-            </td>
-            <td>
-                <a href="Output/PDFs/Chinedu%20Emmanuel%20Okafor%20-%2008145551234.pdf" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                <a href="https://wa.me/2348145551234?text=Dear%20Chinedu%20Emmanuel%20Okafor%2C%0A%0AFollowing%20your%20application%20for%20employment%20at%20Igbinedion%20University%2C%20Okada%20%28IUO%29%2C%20I%20am%20pleased%20to%20inform%20you%20that%20you%20have%20been%20shortlisted%20for%20an%20interview.%0A%0ADate%3A%20Tuesday%2C%204th%20August%2C%202026%0ATime%3A%2011%3A00%20AM%0AVenue%3A%20Senate%20Chamber%2C%20Paul%20Dike%20Central%20Administration%20Building%2C%20IUO%20Main%20Campus%2C%20Okada.%0A%0APlease%20find%20attached%20your%20official%20invitation%20letter%20%28PDF%29.%0A%0ABest%20regards%2C%0ACouncil%2C%20Personnel%20%26%20General%20Administration%0AIgbinedion%20University%2C%20Okada" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>
-            </td>
-        </tr>
-        
-        <tr data-name="fatima abubakar" data-phone="07061112233">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, 'Fatima Abubakar')" id="check-Fatima Abubakar">
-            </td>
-            <td class="name-cell">
-                <strong>Fatima Abubakar</strong>
-                <div class="addr-preview">No. 15 Sapele Road</div>
-            </td>
-            <td><span class="badge badge-phone">07061112233</span></td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> Tuesday, 4th August, 2026</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> 11:30 AM</div>
-            </td>
-            <td>
-                <a href="Output/PDFs/Fatima%20Abubakar%20-%2007061112233.pdf" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                <a href="https://wa.me/2347061112233?text=Dear%20Fatima%20Abubakar%2C%0A%0AFollowing%20your%20application%20for%20employment%20at%20Igbinedion%20University%2C%20Okada%20%28IUO%29%2C%20I%20am%20pleased%20to%20inform%20you%20that%20you%20have%20been%20shortlisted%20for%20an%20interview.%0A%0ADate%3A%20Tuesday%2C%204th%20August%2C%202026%0ATime%3A%2011%3A30%20AM%0AVenue%3A%20Senate%20Chamber%2C%20Paul%20Dike%20Central%20Administration%20Building%2C%20IUO%20Main%20Campus%2C%20Okada.%0A%0APlease%20find%20attached%20your%20official%20invitation%20letter%20%28PDF%29.%0A%0ABest%20regards%2C%0ACouncil%2C%20Personnel%20%26%20General%20Administration%0AIgbinedion%20University%2C%20Okada" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>
-            </td>
-        </tr>
-        
-        <tr data-name="babajide samuel olawale" data-phone="09012349876">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, 'Babajide Samuel Olawale')" id="check-Babajide Samuel Olawale">
-            </td>
-            <td class="name-cell">
-                <strong>Babajide Samuel Olawale</strong>
-                <div class="addr-preview">P.O. Box 450</div>
-            </td>
-            <td><span class="badge badge-phone">09012349876</span></td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> Tuesday, 4th August, 2026</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> 12:00 PM</div>
-            </td>
-            <td>
-                <a href="Output/PDFs/Babajide%20Samuel%20Olawale%20-%2009012349876.pdf" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                <a href="https://wa.me/2349012349876?text=Dear%20Babajide%20Samuel%20Olawale%2C%0A%0AFollowing%20your%20application%20for%20employment%20at%20Igbinedion%20University%2C%20Okada%20%28IUO%29%2C%20I%20am%20pleased%20to%20inform%20you%20that%20you%20have%20been%20shortlisted%20for%20an%20interview.%0A%0ADate%3A%20Tuesday%2C%204th%20August%2C%202026%0ATime%3A%2012%3A00%20PM%0AVenue%3A%20Senate%20Chamber%2C%20Paul%20Dike%20Central%20Administration%20Building%2C%20IUO%20Main%20Campus%2C%20Okada.%0A%0APlease%20find%20attached%20your%20official%20invitation%20letter%20%28PDF%29.%0A%0ABest%20regards%2C%0ACouncil%2C%20Personnel%20%26%20General%20Administration%0AIgbinedion%20University%2C%20Okada" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>
-            </td>
-        </tr>
-        
-            </tbody>
-        </table>
-    </div>
-
-    <div class="footer-note">
-        Tip: Check the box next to any candidate to mark their invitation as sent. Your progress is saved automatically in this browser.
+    <!-- Empty State (Shown when Output/ is deleted or empty) -->
+    <div id="empty-state-container" style="display: none;">
+        <div class="empty-card">
+            <div class="empty-icon">
+                <i class="fa fa-folder-open-o"></i>
+            </div>
+            <h2>No Active Batch Found</h2>
+            <p>
+                The <code>Output/</code> folder is currently empty or has been cleared.
+                Candidates will appear here automatically once you run a batch.
+            </p>
+            <div class="empty-guide">
+                <h3>How to generate interview letters:</h3>
+                <ol>
+                    <li>Double-click <strong>Run_AutoInterview.bat</strong> in this folder.</li>
+                    <li>Select or browse for your candidate CSV file.</li>
+                    <li>Confirm your interview date, time, and venue.</li>
+                    <li>Refresh this page to dispatch your invitations!</li>
+                </ol>
+            </div>
+        </div>
     </div>
 
     <script>
+        let currentCandidates = [];
+
+        function initDispatcher() {
+            if (typeof window.BATCH_DATA !== 'undefined' && 
+                window.BATCH_DATA && 
+                Array.isArray(window.BATCH_DATA.candidates) && 
+                window.BATCH_DATA.candidates.length > 0) {
+                
+                currentCandidates = window.BATCH_DATA.candidates;
+                
+                if (window.BATCH_DATA.title) {
+                    document.getElementById('header-title').innerText = window.BATCH_DATA.title;
+                }
+                if (window.BATCH_DATA.subtitle) {
+                    document.getElementById('header-subtitle').innerText = window.BATCH_DATA.subtitle;
+                }
+                
+                document.getElementById('total-count').innerText = currentCandidates.length;
+                document.getElementById('active-batch-container').style.display = 'block';
+                document.getElementById('empty-state-container').style.display = 'none';
+                
+                renderTable(currentCandidates);
+                loadSentStatus();
+            } else {
+                document.getElementById('total-count').innerText = '0';
+                document.getElementById('sent-count').innerText = '0';
+                document.getElementById('active-batch-container').style.display = 'none';
+                document.getElementById('empty-state-container').style.display = 'block';
+            }
+        }
+
+        function renderTable(candidates) {
+            const tbody = document.getElementById('candidates-body');
+            tbody.innerHTML = '';
+            
+            candidates.forEach((cand, idx) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-name', (cand.name || '').toLowerCase());
+                tr.setAttribute('data-phone', (cand.phone || '').toLowerCase());
+                tr.setAttribute('data-addr', (cand.address || '').toLowerCase());
+                tr.setAttribute('data-id', cand.name);
+
+                let phoneBadge = '<span class="badge badge-none">No Phone</span>';
+                let waBtn = '<span class="text-muted" style="font-size: 12px;">No phone number</span>';
+                
+                if (cand.wa_phone) {
+                    phoneBadge = `<span class="badge badge-phone">${cand.phone}</span>`;
+                    const waUrl = `https://wa.me/${cand.wa_phone}?text=${cand.encoded_msg}`;
+                    waBtn = `<a href="${waUrl}" target="_blank" class="btn btn-wa" onclick="markSentOnWaClick('${cand.name.replace(/'/g, "\\'")}')">
+                                <i class="fa fa-whatsapp"></i> Chat on WhatsApp
+                             </a>`;
+                }
+
+                const pdfBtn = cand.pdf_path 
+                    ? `<a href="${cand.pdf_path}" target="_blank" class="btn btn-pdf" title="Open PDF">
+                           <i class="fa fa-file-pdf-o"></i> View PDF
+                       </a>`
+                    : '<span class="text-muted" style="font-size: 12px;">No PDF</span>';
+
+                tr.innerHTML = `
+                    <td class="check-col">
+                        <input type="checkbox" class="status-check" onchange="toggleSent(this, '${cand.name.replace(/'/g, "\\'")}')" id="check-${idx}">
+                    </td>
+                    <td class="name-cell">
+                        <strong>${cand.name}</strong>
+                        <div class="addr-preview">${cand.address || ''}</div>
+                    </td>
+                    <td>${phoneBadge}</td>
+                    <td>
+                        <div class="time-badge"><i class="fa fa-calendar"></i> ${cand.interview_date || 'N/A'}</div>
+                        <div class="time-sub"><i class="fa fa-clock-o"></i> ${cand.interview_time || 'N/A'}</div>
+                    </td>
+                    <td>${pdfBtn}</td>
+                    <td>${waBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
         function filterTable() {
             const query = document.getElementById('search-input').value.toLowerCase().trim();
             const rows = document.querySelectorAll('#candidates-body tr');
             rows.forEach(row => {
                 const name = row.getAttribute('data-name') || '';
                 const phone = row.getAttribute('data-phone') || '';
-                if (name.includes(query) || phone.includes(query)) {
+                const addr = row.getAttribute('data-addr') || '';
+                if (name.includes(query) || phone.includes(query) || addr.includes(query)) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';
@@ -383,7 +438,7 @@
 
         function toggleSent(checkbox, candidateName) {
             const row = checkbox.closest('tr');
-            const storageKey = 'iuo_sent_' + candidateName;
+            const storageKey = 'autoint_sent_' + candidateName;
             if (checkbox.checked) {
                 row.classList.add('sent');
                 localStorage.setItem(storageKey, 'true');
@@ -394,14 +449,28 @@
             updateStats();
         }
 
+        function markSentOnWaClick(candidateName) {
+            const storageKey = 'autoint_sent_' + candidateName;
+            localStorage.setItem(storageKey, 'true');
+            const rows = document.querySelectorAll('#candidates-body tr');
+            rows.forEach(row => {
+                if (row.getAttribute('data-id') === candidateName) {
+                    const cb = row.querySelector('.status-check');
+                    if (cb) cb.checked = true;
+                    row.classList.add('sent');
+                }
+            });
+            updateStats();
+        }
+
         function loadSentStatus() {
-            const checkboxes = document.querySelectorAll('.status-check');
-            checkboxes.forEach(cb => {
-                const row = cb.closest('tr');
-                const candidateName = row.querySelector('.name-cell strong').innerText;
-                const isSent = localStorage.getItem('iuo_sent_' + candidateName);
+            const rows = document.querySelectorAll('#candidates-body tr');
+            rows.forEach(row => {
+                const candidateName = row.getAttribute('data-id');
+                const cb = row.querySelector('.status-check');
+                const isSent = localStorage.getItem('autoint_sent_' + candidateName);
                 if (isSent === 'true') {
-                    cb.checked = true;
+                    if (cb) cb.checked = true;
                     row.classList.add('sent');
                 }
             });
@@ -413,7 +482,21 @@
             document.getElementById('sent-count').innerText = sent;
         }
 
-        document.addEventListener('DOMContentLoaded', loadSentStatus);
+        function resetAllSentProgress() {
+            if (confirm("Are you sure you want to uncheck all candidates for this batch?")) {
+                currentCandidates.forEach(cand => {
+                    localStorage.removeItem('autoint_sent_' + cand.name);
+                });
+                const checkboxes = document.querySelectorAll('.status-check');
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('tr').classList.remove('sent');
+                });
+                updateStats();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initDispatcher);
     </script>
 </body>
 </html>

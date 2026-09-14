@@ -16,6 +16,7 @@ import csv
 import copy
 import shutil
 import tempfile
+import json
 import urllib.parse
 from datetime import datetime
 import docx
@@ -433,9 +434,9 @@ def convert_docx_folder_to_pdfs(docx_files_map):
                 pass
 
 
-def generate_whatsapp_dispatcher_html(applicants_data, output_html_path):
-    """Generates a rich, interactive HTML dashboard for WhatsApp dispatching at project root."""
-    rows_html = []
+def generate_whatsapp_dispatcher_data(applicants_data, out_dir, base_dir):
+    """Saves candidate data to Output/candidates.js for the dynamic WhatsApp Dispatcher."""
+    candidates_list = []
     for app in applicants_data:
         name = app["name"]
         display_phone = app["phone"]
@@ -456,348 +457,35 @@ def generate_whatsapp_dispatcher_html(applicants_data, output_html_path):
             f"Best regards,\nCouncil, Personnel & General Administration\nIgbinedion University, Okada"
         )
         encoded_msg = urllib.parse.quote(msg_text)
+        addr_preview = app['address_lines'][0] if app.get('address_lines') else ""
         
-        if wa_phone:
-            wa_link = f"https://wa.me/{wa_phone}?text={encoded_msg}"
-            wa_btn = f'<a href="{wa_link}" target="_blank" class="btn btn-wa"><i class="fa fa-whatsapp"></i> Chat on WhatsApp</a>'
-            phone_badge = f'<span class="badge badge-phone">{display_phone}</span>'
-        else:
-            wa_btn = '<span class="text-muted">No phone number</span>'
-            phone_badge = '<span class="badge badge-none">No Phone</span>'
-            
-        rows_html.append(f"""
-        <tr data-name="{name.lower()}" data-phone="{display_phone.lower()}">
-            <td class="check-col">
-                <input type="checkbox" class="status-check" onchange="toggleSent(this, '{name}')" id="check-{name}">
-            </td>
-            <td class="name-cell">
-                <strong>{name}</strong>
-                <div class="addr-preview">{app['address_lines'][0]}</div>
-            </td>
-            <td>{phone_badge}</td>
-            <td>
-                <div class="time-badge"><i class="fa fa-calendar"></i> {int_date}</div>
-                <div class="time-sub"><i class="fa fa-clock-o"></i> {int_time}</div>
-            </td>
-            <td>
-                <a href="{pdf_rel_path}" target="_blank" class="btn btn-pdf" title="Open PDF">
-                    <i class="fa fa-file-pdf-o"></i> View PDF
-                </a>
-            </td>
-            <td>
-                {wa_btn}
-            </td>
-        </tr>
-        """)
+        candidates_list.append({
+            "name": name,
+            "phone": display_phone,
+            "wa_phone": wa_phone,
+            "address": addr_preview,
+            "interview_date": int_date,
+            "interview_time": int_time,
+            "pdf_path": pdf_rel_path,
+            "pdf_name": pdf_name,
+            "encoded_msg": encoded_msg
+        })
         
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IUO Interview WhatsApp Dispatcher</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <style>
-        :root {{
-            --primary: #1b5e20;
-            --primary-light: #2e7d32;
-            --wa-green: #25d366;
-            --wa-dark: #128c7e;
-            --bg: #f4f6f8;
-            --card-bg: #ffffff;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --border: #e5e7eb;
-        }}
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text-dark);
-            padding: 24px;
-        }}
-        .header-card {{
-            background: linear-gradient(135deg, #1b5e20 0%, #0d3813 100%);
-            color: white;
-            padding: 24px 32px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }}
-        .header-card h1 {{ font-size: 22px; font-weight: 700; margin-bottom: 4px; }}
-        .header-card p {{ font-size: 14px; opacity: 0.9; }}
-        .stats-bar {{
-            display: flex;
-            gap: 16px;
-        }}
-        .stat-badge {{
-            background: rgba(255,255,255,0.18);
-            padding: 8px 16px;
-            border-radius: 8px;
-            text-align: center;
-        }}
-        .stat-badge .num {{ font-size: 20px; font-weight: 700; display: block; }}
-        .stat-badge .lbl {{ font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }}
-        
-        .controls-card {{
-            background: var(--card-bg);
-            padding: 16px 24px;
-            border-radius: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }}
-        .search-box {{
-            position: relative;
-            flex: 1;
-            max-width: 400px;
-        }}
-        .search-box input {{
-            width: 100%;
-            padding: 10px 14px 10px 38px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }}
-        .search-box input:focus {{ border-color: var(--primary); }}
-        .search-box i {{
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }}
-        .quick-links {{
-            display: flex;
-            gap: 10px;
-        }}
-        .btn-link {{
-            padding: 8px 14px;
-            background: #f1f5f9;
-            color: #334155;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }}
-        .btn-link:hover {{ background: #e2e8f0; }}
-
-        .table-card {{
-            background: var(--card-bg);
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            overflow: hidden;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }}
-        th {{
-            background: #fafafa;
-            padding: 14px 18px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-        }}
-        td {{
-            padding: 14px 18px;
-            font-size: 14px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle;
-        }}
-        tr:last-child td {{ border-bottom: none; }}
-        tr:hover td {{ background: #f8fafc; }}
-        tr.sent td {{
-            background: #f0fdf4 !important;
-            opacity: 0.8;
-        }}
-        tr.sent .name-cell strong {{
-            text-decoration: line-through;
-            color: var(--text-muted);
-        }}
-
-        .check-col {{ width: 40px; text-align: center; }}
-        .status-check {{
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: var(--primary);
-        }}
-
-        .name-cell strong {{ font-size: 15px; color: #111827; }}
-        .addr-preview {{ font-size: 12px; color: var(--text-muted); margin-top: 2px; }}
-        .badge {{
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }}
-        .badge-phone {{ background: #e0f2fe; color: #0369a1; }}
-        .badge-none {{ background: #f3f4f6; color: #9ca3af; }}
-        
-        .time-badge {{ font-weight: 600; color: #374151; font-size: 13px; }}
-        .time-sub {{ font-size: 12px; color: var(--text-muted); margin-top: 2px; }}
-
-        .btn {{
-            padding: 8px 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }}
-        .btn-wa {{
-            background: var(--wa-green);
-            color: white;
-            box-shadow: 0 2px 4px rgba(37,211,102,0.25);
-        }}
-        .btn-wa:hover {{ background: var(--wa-dark); }}
-        .btn-pdf {{
-            background: #fee2e2;
-            color: #b91c1c;
-        }}
-        .btn-pdf:hover {{ background: #fecaca; }}
-        .footer-note {{
-            text-align: center;
-            margin-top: 24px;
-            font-size: 13px;
-            color: var(--text-muted);
-        }}
-    </style>
-</head>
-<body>
-
-    <div class="header-card">
-        <div>
-            <h1>Igbinedion University, Okada - Interview Dispatcher</h1>
-            <p>Direct WhatsApp dispatching & PDF access for shortlisted applicants</p>
-        </div>
-        <div class="stats-bar">
-            <div class="stat-badge">
-                <span class="num">{len(applicants_data)}</span>
-                <span class="lbl">Total Candidates</span>
-            </div>
-            <div class="stat-badge">
-                <span class="num" id="sent-count">0</span>
-                <span class="lbl">Invitations Sent</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="controls-card">
-        <div class="search-box">
-            <i class="fa fa-search"></i>
-            <input type="text" id="search-input" placeholder="Search applicant name or phone number..." onkeyup="filterTable()">
-        </div>
-        <div class="quick-links">
-            <a href="Output/All_Interview_Invitations.docx" class="btn-link" target="_blank">
-                <i class="fa fa-file-word-o"></i> Open Master Word Doc
-            </a>
-            <a href="Output/PDFs/" class="btn-link" target="_blank">
-                <i class="fa fa-folder-open-o"></i> Open PDFs Folder
-            </a>
-        </div>
-    </div>
-
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th class="check-col" title="Mark as sent">Sent</th>
-                    <th>Candidate Name & Address</th>
-                    <th>Phone / WhatsApp</th>
-                    <th>Interview Schedule</th>
-                    <th>Individual Letter</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="candidates-body">
-                {"".join(rows_html)}
-            </tbody>
-        </table>
-    </div>
-
-    <div class="footer-note">
-        Tip: Check the box next to any candidate to mark their invitation as sent. Your progress is saved automatically in this browser.
-    </div>
-
-    <script>
-        function filterTable() {{
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#candidates-body tr');
-            rows.forEach(row => {{
-                const name = row.getAttribute('data-name') || '';
-                const phone = row.getAttribute('data-phone') || '';
-                if (name.includes(query) || phone.includes(query)) {{
-                    row.style.display = '';
-                }} else {{
-                    row.style.display = 'none';
-                }}
-            }});
-        }}
-
-        function toggleSent(checkbox, candidateName) {{
-            const row = checkbox.closest('tr');
-            const storageKey = 'iuo_sent_' + candidateName;
-            if (checkbox.checked) {{
-                row.classList.add('sent');
-                localStorage.setItem(storageKey, 'true');
-            }} else {{
-                row.classList.remove('sent');
-                localStorage.removeItem(storageKey);
-            }}
-            updateStats();
-        }}
-
-        function loadSentStatus() {{
-            const checkboxes = document.querySelectorAll('.status-check');
-            checkboxes.forEach(cb => {{
-                const row = cb.closest('tr');
-                const candidateName = row.querySelector('.name-cell strong').innerText;
-                const isSent = localStorage.getItem('iuo_sent_' + candidateName);
-                if (isSent === 'true') {{
-                    cb.checked = true;
-                    row.classList.add('sent');
-                }}
-            }});
-            updateStats();
-        }}
-
-        function updateStats() {{
-            const sent = document.querySelectorAll('.status-check:checked').length;
-            document.getElementById('sent-count').innerText = sent;
-        }}
-
-        document.addEventListener('DOMContentLoaded', loadSentStatus);
-    </script>
-</body>
-</html>
-"""
-    with open(output_html_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print(f"[Dispatcher] Interactive WhatsApp Dispatcher updated at:\n  -> {output_html_path}")
+    js_data = {
+        "title": "Igbinedion University, Okada - Interview Dispatcher",
+        "subtitle": "Direct WhatsApp dispatching & PDF access for shortlisted applicants",
+        "generated_at": datetime.now().strftime("%A, %d %B, %Y %I:%M %p"),
+        "total_candidates": len(candidates_list),
+        "candidates": candidates_list
+    }
+    
+    candidates_js_path = os.path.join(out_dir, "candidates.js")
+    with open(candidates_js_path, "w", encoding="utf-8") as f:
+        f.write(f"window.BATCH_DATA = {json.dumps(js_data, indent=2)};\n")
+    print(f"[Dispatcher] Active batch candidate data saved to:\n  -> {candidates_js_path}")
+    
+    root_dispatcher = os.path.join(base_dir, "WhatsApp_Dispatcher.html")
+    return root_dispatcher
 
 
 def select_applicants_file(base_dir):
@@ -1032,9 +720,8 @@ def main():
     # 5. Convert individual docx to pdf
     convert_docx_folder_to_pdfs(docx_to_pdf_map)
     
-    # 6. Generate WhatsApp Dispatcher Dashboard at root directory
-    root_dispatcher_path = os.path.join(base_dir, "WhatsApp_Dispatcher.html")
-    generate_whatsapp_dispatcher_html(applicants, root_dispatcher_path)
+    # 6. Generate WhatsApp Dispatcher Data
+    root_dispatcher_path = generate_whatsapp_dispatcher_data(applicants, out_dir, base_dir)
     
     if os.path.exists(clean_template_copy):
         try:
