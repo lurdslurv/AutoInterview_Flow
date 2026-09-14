@@ -1,0 +1,21 @@
+# Output deliverables
+/Output/
+
+# Real applicant data (protects all candidate CSVs, except public sample)
+*.csv
+!applicants_sample.csv
+
+# Official institutional templates (protects university letterhead from public repo)
+template_with_placeholders.docx
+invite_template.docx
+~$*.docx
+
+# Compiled binaries & build artifacts (distribute via GitHub Releases instead)
+*.exe
+build/
+dist/
+*.spec
+
+# Python cache
+__pycache__/
+*.pyc
