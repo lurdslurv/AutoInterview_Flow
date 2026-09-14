@@ -12,6 +12,7 @@ invite_template.docx
 
 # Compiled binaries & build artifacts (distribute via GitHub Releases instead)
 *.exe
+*.zip
 build/
 dist/
 *.spec
