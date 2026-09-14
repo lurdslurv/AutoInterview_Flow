@@ -2,114 +2,100 @@
 
 > **Automated Interview Invitation Engine, Master Document Generator & WhatsApp Dispatcher**
 
-AutoInterview Flow is a Python and Windows automation utility designed to streamline the mass generation and distribution of formal institution/corporate interview invitation letters. 
+AutoInterview Flow is a Python and Windows automation utility designed to streamline the mass generation and distribution of formal institution and corporate interview invitation letters. 
 
 It solves notorious Word Mail Merge layout issues—such as awkward address block vertical gaps, unaligned header dates, and line wrapping—while automatically generating both an archived Master Word document and individual candidate PDFs ready for WhatsApp dispatch.
 
 ---
 
-## Key Features
+## Download & Setup (For Non-Technical Users)
 
-- **Combined Master Document**: Compiles every candidate's invitation letter into a single, cohesive Microsoft Word document (`Output/All_Interview_Invitations.docx`) with headers, crests, and continuous layout intact for record-keeping and mass printing.
-- **Individual Candidate PDFs**: Automatically converts and saves each letter as a high-fidelity PDF (`Output/PDFs/[Candidate Name] - [Phone Number].pdf`) for digital dispatch.
-- **Smart Address Block Formatting**: Uses Word XML soft line breaks (`<w:br/>`) and 0pt spacing to ensure clean, professional multi-line address blocks without excessive paragraph gaps.
-- **Right-Aligned Header Alignment**: Dynamically computes right-aligned tab stops (6.5") for letter reference numbers and dates, preventing awkward wrapping for long dates (e.g., *"Monday, 14th September, 2026"*).
-- **Interactive WhatsApp Dispatcher**: Generates a sleek, responsive HTML dashboard (`WhatsApp_Dispatcher.html`) with pre-composed, one-click `wa.me` WhatsApp chat links and direct local links to each candidate's PDF.
-- **Zero-Setup Standalone Executable**: Packaged with PyInstaller so non-technical staff can run the automation with a single click—no Python, pip, or dependency installation required.
-- **Flexible Batch Processing**: Supports interactive CLI prompts, drag-and-drop CSV execution, or a native Windows file explorer dialog.
+**You do NOT need to install Python, Git, or write any code to use this tool.**
 
----
+### Step 1: Download the Ready-to-Run App
+1. Go to the **[Releases](https://github.com/lurdslurv/AutoInterview_Flow/releases)** section on the right-hand side of this GitHub page (or click [Latest Release](https://github.com/lurdslurv/AutoInterview_Flow/releases/latest)).
+2. Under **Assets**, click to download **`AutoInterview-v1.0-Windows.zip`**.
 
-## Directory Structure
+### Step 2: Extract the Folder
+1. Locate the downloaded `.zip` file on your computer (usually in your `Downloads` folder).
+2. Right-click the `.zip` file and select **"Extract All..."** (or unzip it to your Desktop or Documents).
+3. Open the newly extracted folder.
 
-```text
-AutoInterview/
-│
-├── AutoInterview.exe            # Standalone executable (Zero Python setup)
-├── Run_AutoInterview.bat        # One-click Windows launcher & menu
-├── auto_interview.py            # Core automation source code
-├── sample_template.docx         # Generic sample template (Public safe)
-├── applicants_sample.csv        # Sample candidate dataset
-├── WhatsApp_Dispatcher.html     # Interactive dispatch dashboard
-│
-├── Output/                      # Generated deliverables (Ignored by Git)
-│   ├── All_Interview_Invitations.docx  # Master combined letters
-│   ├── All_Interview_Invitations.pdf   # Master PDF
-│   └── PDFs/                           # Individual candidate PDFs
-│       ├── Jane Doe - 08031234567.pdf
-│       └── John Doe - 08029876543.pdf
-│
-└── .gitignore                   # Protects institutional templates & candidate PII
-```
+### Step 3: Run the Program
+1. Inside the folder, simply double-click **`Run_AutoInterview.bat`**.
+2. A friendly window will appear:
+   - Type `B` to browse for your candidate CSV file using the familiar Windows file picker, or drag and drop your CSV file right into the window.
+   - You can test it immediately using the included `applicants_sample.csv`.
+3. Confirm or type your Interview Date, Time, Venue, and Reference Number.
+4. The system will automatically build your documents and display a simple menu to view your output!
+
+### Step 4: Access Your Deliverables
+Everything generated will be neatly saved inside the **`Output`** folder:
+- **`Output/All_Interview_Invitations.docx`**: A single master Word document containing all applicant letters sequentially for printing or signing.
+- **`Output/All_Interview_Invitations.pdf`**: The combined master PDF.
+- **`Output/PDFs/`**: Individual candidate PDFs named `[Candidate Name] - [Phone Number].pdf`.
+- **`WhatsApp_Dispatcher.html`**: Double-click this in your browser to search applicants and click one-touch WhatsApp links to dispatch their invitations!
 
 ---
 
-## Quick Start
+## How to Use Your Own Organization's Letterhead
 
-### 1. Using the Standalone Launcher (Recommended)
-1. Double-click `Run_AutoInterview.bat`.
-2. Select or enter your candidate CSV file (you can press `B` to browse using the Windows file picker, or drag and drop your file into the window).
-3. Confirm or customize the Interview Date, Time, Venue, and Reference Number.
-4. AutoInterview will generate the master document, individual candidate PDFs, and open the post-run menu.
-
-### 2. Running from Python Source
-If you are running from source:
-```bash
-# Clone the repository
-git clone https://github.com/lurdslurv/AutoInterview_Flow.git
-cd AutoInterview_Flow
-
-# Install dependencies
-pip install python-docx docx2pdf
-
-# Run the automation
-python auto_interview.py applicants_sample.csv
-```
+By default, the application uses the included `sample_template.docx`. To use your institution's official letterhead:
+1. Open your official letterhead template in Microsoft Word.
+2. Insert these tags wherever you want candidate details to appear:
+   - `{REF_NO}` – Reference number (e.g. `IUO/REG/PERS/IM/26`)
+   - `{TODAYS_DATE}` – Date of the letter
+   - `{CANDIDATE_NAME}` – Candidate's full name
+   - `{ADDRESS}` – Formatted multi-line address block
+   - `{INTERVIEW_DATE}` – Date of the interview
+   - `{INTERVIEW_TIME}` – Time of the interview
+   - `{VENUE}` – Hall, room, or location
+3. Save the document in the AutoInterview folder as **`template_with_placeholders.docx`**.
+4. The next time you run `Run_AutoInterview.bat`, it will automatically use your official template!
 
 ---
 
 ## CSV Data Format
 
-Prepare your applicant list as a standard UTF-8 CSV file with the following columns:
+Prepare your applicant list as a standard Excel CSV file with these column headers:
 
 | Column Name | Description | Example |
 | :--- | :--- | :--- |
 | `Name` | Candidate full name (will be rendered in bold) | `Edowhoghon Irekpono` |
-| `Phone` | Contact phone number for WhatsApp | `08033467912` |
+| `Phone` | WhatsApp contact phone number | `08033467912` |
 | `Address` | Multi-line candidate address (comma or pipe separated) | `20 Eghosa Street, GRA, Benin City` |
-| `Interview_Date` | (Optional) Specific interview date for this candidate | `Tuesday, 4th August, 2026` |
-| `Interview_Time` | (Optional) Specific interview time slot | `10:00 AM` |
+| `Interview_Date` | *(Optional)* Custom date for this applicant | `Tuesday, 4th August, 2026` |
+| `Interview_Time` | *(Optional)* Custom time slot | `10:00 AM` |
 
-*Note: If `Interview_Date` or `Interview_Time` are left blank in the CSV, the program will prompt you for batch default values during startup.*
-
----
-
-## Customizing the Word Template
-
-AutoInterview searches for templates in the following order:
-1. `template_with_placeholders.docx` *(Highest priority - for your organization's official letterhead)*
-2. `invite_template.docx`
-3. `sample_template.docx` *(Included default generic template)*
-
-You can design your own `.docx` template using standard curly-bracket tags:
-- `{REF_NO}` - Document reference number (e.g., `IUO/REG/PERS/IM/26`)
-- `{TODAYS_DATE}` - Date of issuance (e.g., `14th September, 2026`)
-- `{CANDIDATE_NAME}` - Applicant name
-- `{ADDRESS}` - Formatted multi-line address block
-- `{INTERVIEW_DATE}` - Date of the interview
-- `{INTERVIEW_TIME}` - Time slot
-- `{VENUE}` - Location / hall / room
+*Tip: If `Interview_Date` or `Interview_Time` are left blank in the spreadsheet, the program will simply ask you for the default date and time when you run it.*
 
 ---
 
-## WhatsApp Dispatcher
+## For Developers (Running from Python Source)
 
-After generating the letters, open `WhatsApp_Dispatcher.html` in any web browser. 
+If you are a developer and prefer to run or modify the Python source code directly:
 
-The dashboard provides:
-- Live search and filter by candidate name or phone number.
-- Instant click-to-chat links formatted with international dial codes (`wa.me/234...`).
-- Direct file links to preview and attach the candidate's personalized PDF letter.
+```bash
+# 1. Clone the repository
+git clone https://github.com/lurdslurv/AutoInterview_Flow.git
+cd AutoInterview_Flow
+
+# 2. Install required Python packages
+pip install python-docx docx2pdf
+
+# 3. Run the automation
+python auto_interview.py applicants_sample.csv
+```
+
+---
+
+## Key Features Under the Hood
+
+- **Combined Master Document**: Compiles every candidate's invitation letter into a single Word document (`Output/All_Interview_Invitations.docx`) with headers, crests, and continuous layout intact for record-keeping and mass printing.
+- **Individual Candidate PDFs**: Automatically converts and saves each letter as a high-fidelity PDF (`Output/PDFs/[Candidate Name] - [Phone Number].pdf`) for digital dispatch.
+- **Smart Address Block Formatting**: Uses Word XML soft line breaks (`<w:br/>`) and 0pt spacing to ensure clean, professional multi-line address blocks without excessive paragraph gaps.
+- **Right-Aligned Header Alignment**: Dynamically computes right-aligned tab stops (6.5") for letter reference numbers and dates, preventing awkward wrapping for long dates (e.g., *"Monday, 14th September, 2026"*).
+- **Interactive WhatsApp Dispatcher**: Generates a sleek, responsive HTML dashboard (`WhatsApp_Dispatcher.html`) with pre-composed, one-click `wa.me` WhatsApp chat links and direct local links to each candidate's PDF.
 
 ---
 
